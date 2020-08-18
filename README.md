@@ -1,0 +1,2 @@
+- Batch har xtract: xtract all `*.har` file(s) in a folder.
+- Merge all MP4: merge all `*.mp4` file(s) in a folder.
