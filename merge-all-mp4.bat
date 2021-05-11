@@ -4,7 +4,7 @@ if "%1" == "" start "" /min "%~f0" MY_FLAG && exit
 
 for /R %%F in (*.mp4) do (
 ffmpeg -y -i "%%F" -t 2 -r 0.5 "%%~nF.jpg"
-if errorlevel 1 echo del /s /f /q %%F >> remove_corrupted.bat
+if errorlevel 1 echo del /s /f /q "%%F" >> remove_corrupted.bat
 del "%%~nF.jpg"
 )
 del /s /f /q *.tmp
