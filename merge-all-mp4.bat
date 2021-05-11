@@ -18,15 +18,15 @@ IF EXIST remove_corrupted.bat (
 for /R %%F in (*.mp4) do (
 echo file '%%F' >> data.txt
 )
-ffmpeg -f concat -safe 0 -i data.txt -c copy output.mp4
+ffmpeg -f concat -safe 0 -i data.txt -c:v copy -c:a aac output.mp4
 attrib +r output.mp4
-del *.mp4
+@REM del *.mp4
 attrib -r output.mp4
 del *.txt
 
 for %%I in (.) do set CurrDirName=%%~nxI
-echo %CurrDirName%
-rename output.mp4 %CurrDirName%.mp4
-move *.mp4 ../
-
+@REM echo %CurrDirName%
+rename output.mp4 "%CurrDirName%".mp4
+move "%CurrDirName%.mp4" ../
+@REM pause
 exit
