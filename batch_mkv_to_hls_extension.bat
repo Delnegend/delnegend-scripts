@@ -1,7 +1,7 @@
 @echo off
 cls
 ffmpeg -i %1 -codec copy "output.mp4"
-ffmpeg -i output.mp4 -codec copy -start_number 0 -hls_time 10 -hls_list_size 0 -f hls p.m3u8
+ffmpeg -i output.mp4 -codec copy -start_number 0 -hls_time 15 -hls_list_size 0 -f hls p.m3u8
 del output.mp4
 move %1 ../
 @REM git init
