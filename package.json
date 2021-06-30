@@ -1,0 +1,22 @@
+{
+  "name": "delnegend-scripts",
+  "version": "1.0.0",
+  "description": "scripts collections",
+  "main": "index.js",
+  "scripts": {
+    "har": "python batch-har-xtract.py"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DELNEGEND/delnegend-scripts.git"
+  },
+  "author": "Delnegend",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DELNEGEND/delnegend-scripts/issues"
+  },
+  "homepage": "https://github.com/DELNEGEND/delnegend-scripts#readme",
+  "dependencies": {
+    "har-extractor": "^1.1.1"
+  }
+}
