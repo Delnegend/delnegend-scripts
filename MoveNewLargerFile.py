@@ -1,18 +1,34 @@
-import glob, os, shutil, pathlib
+import glob
+import os
+import shutil
+import sys
+import pathlib
 
 def filesize(item):
-  return os.stat(item).st_size
+    return os.stat(item).st_size
 
-tempPathName = "newFilesBigger"
+def main():
+    tempPathName = "newFilesBigger"
+    pathlib.Path(tempPathName).mkdir(parents=True, exist_ok=True)
 
-pathlib.Path(tempPathName).mkdir(parents=True, exist_ok=True)
+    oldFormat = sys.argv[1]
+    newFormat = sys.argv[2]
 
-oldFormat = input("Old file format: ")
-newFormat = input("New file format: ")
+    oldFiles = glob.glob(f"*{oldFormat}")
+    newFiles = glob.glob(f"*{newFormat}")
 
-allNewFiles = glob.glob("*."+newFormat)
-for newFile in allNewFiles:
-  oldFile = newFile.replace("."+newFormat,"."+oldFormat)
-  if (filesize(newFile) >= filesize(oldFile)):
-    shutil.move(newFile, tempPathName)
-    shutil.move(oldFile, tempPathName)
+    # if old file is larger than new file, move it to new folder
+    for oldFile in oldFiles:
+        # check if new file is exist, if not, ignore, else compare size and move both old and new files if the new file is bigger
+        newFile = oldFile.replace(oldFormat, newFormat)
+        if newFile in newFiles:
+            if filesize(oldFile) > filesize(newFile):
+                shutil.move(oldFile, tempPathName)
+                shutil.move(newFile, tempPathName)
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as e:
+        print(e)
+    exit()
