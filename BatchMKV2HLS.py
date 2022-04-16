@@ -1,20 +1,36 @@
 import os
-import sys
+import subprocess
 import glob
-for elem in glob.glob("*.mkv"):
-  # filename = os.path.splitext("base")[0]
-  # userParams = sys.argv
-  # userParams.pop(0)
-  # fileName = userParams[0].replace('.\\','')
-  fileName = '"'+elem+'"'
-  fileName_ = elem
-  folderName = '"'+os.path.splitext(fileName_)[0]+'"'
-  folderName_ = os.path.splitext(fileName_)[0]
-  # print(folderName)
-  os.system('mkdir ' + folderName)
-  os.system('move ' + fileName + " " + folderName)
-  os.system('copy batch_mkv_to_hls_extension.bat ' + folderName)
-  os.chdir(folderName_)
-  os.system('batch_mkv_to_hls_extension.bat ' + fileName)
-  os.rename(r'p.m3u8',r'index.m3u8')
-  os.chdir('../')
+import shutil
+
+def main():
+    files = getFiles(os.getcwd())
+    for file in files:
+        extension = file.split('.')[-1]
+        folder_name = file.replace('.' + extension, '')
+        convert_to_mp4 = f'ffmpeg -i {file} -codec copy "output.mp4"'
+        split_to_hls = f'ffmpeg -i output.mp4 -codec copy -start_number 0 -hls_time 15 -hls_list_size 0 -f hls index.m3u8'
+        os.mkdir(folder_name)
+        shutil.move(file, folder_name)
+        os.chdir(folder_name)
+        subprocess.call(convert_to_mp4, shell=True)
+        subprocess.call(split_to_hls, shell=True)
+        os.remove('output.mp4')
+        shutil.move(file, '..')
+        os.chdir('..')
+
+def getFiles(path):
+    files = []
+    for file in os.listdir(path):
+        supported_format = ["mkv"]
+        if file.split('.')[-1].lower() in supported_format:
+            files.append(file)
+    return files
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as e:
+        print(e)
+    exit()
