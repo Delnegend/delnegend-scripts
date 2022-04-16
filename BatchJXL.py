@@ -19,13 +19,13 @@ def getFiles(path):
             files.append(file)
     return files
 
-def args():
+def getArgs():
     parser = argparse.ArgumentParser(description="Convert image files to jxl. If none argument is given, all files in current directory will be converted.")
     parser.add_argument("-i", help="Input supported file (jpg, png, gif, exr, jpeg, pfm, pgm, ppm, pgx)", type=str, required=False)
     return parser.parse_args()
 
 def main():
-    args = args();
+    args = getArgs();
     if args.i:
         convert(args.i)
     if not args.i:
