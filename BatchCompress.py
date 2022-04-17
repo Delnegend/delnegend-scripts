@@ -3,8 +3,6 @@ from os import chdir, listdir
 from os.path import isfile, join
 from shutil import move
 from argparse import ArgumentParser
-from cv2 import repeat
-import concurrent.futures
 import subprocess
 
 def main():
@@ -14,7 +12,7 @@ def main():
         chdir(folder)
         if params.type == "zip":
             compress_zip(folder)
-        else if params.type == "7z":
+        elif params.type == "7z":
             compress_7z(folder)
         move(f'{folder}.{type}', "..")
         chdir("..")
