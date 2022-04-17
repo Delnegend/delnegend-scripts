@@ -1,15 +1,19 @@
 import subprocess, os, argparse
 import concurrent.futures
-from dngnd import print_sign
+
+def print_sign(text):
+    top_bottom_bar = '=' * (len(text) + 8)
+    space = '=' + ' ' * (len(text) + 6) + '='
+    message = '=' + ' ' * 3 + text + ' ' * 3 + '='
+    print(top_bottom_bar)
+    print(space)
+    print(message)
+    print(space)
+    print(top_bottom_bar)
 
 def convert(file):
     filename = file.replace("."+file.split('.')[-1], "")
-    if (subprocess.run(f'cjxl "{file}" "{filename}.jxl" -q 100 -e 8', shell=True, check=True) == 0):
-        print_sign(f'{file} converted to {filename}.jxl')
-        return True;
-    else:
-        print_sign(f'{file} failed to convert to {filename}.jxl')
-        return False;
+    subprocess.run(f'cjxl "{file}" "{filename}.jxl" -q 100 -e 8', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def getFiles(path):
     files = []
@@ -25,13 +29,27 @@ def getArgs():
     return parser.parse_args()
 
 def main():
-    args = getArgs();
+
+    args = getArgs()
+    convert_failed = []
+
     if args.i:
         convert(args.i)
     if not args.i:
         files = getFiles(os.getcwd())
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            executor.map(convert, files)
+        with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+            for item in files:
+                curr_thread = executor.submit(convert, item)
+                if not curr_thread.result():
+                    print(f'{item} converted to .jxl')
+                else:
+                    convert_failed.append(item)
+        if len(convert_failed) > 0:
+            print_sign(f'{len(convert_failed)} files failed to convert to jxl')
+            for item in convert_failed:
+                print(item)
+        print_sign("Press Enter to exit...")
+        input()
 
 if __name__ == '__main__':
     try:
