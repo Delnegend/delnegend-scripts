@@ -10,19 +10,17 @@ def main():
     folders = getFolders(".")
     type = argv[1]
     try:
-        if type == "7z":
-            for folder in folders:
-                chdir(folder)
+        for folder in folders:
+            chdir(folder)
+            if type == "7z":
                 compress_7z(folder)
-        elif type == "zip":
-            for folder in folders:
-                chdir(folder)
+            elif type == "zip":
                 compress_zip(folder)
-        else:
-            print("Type must be 7z or zip")
-        move(f'{folder}.{type}', "..")
-        chdir("..")
-    except Exception as e:
+            else:
+                print("Type must be 7z or zip")
+            move(f'{folder}.{type}', "..")
+            chdir("..")
+    except:
         print("You must specify a type of compression as a first argument: 7z or zip")
 def getFolders(path):
     return [f for f in listdir(path) if not isfile(join(path, f))]
