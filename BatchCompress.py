@@ -8,22 +8,25 @@ import subprocess
 
 def main():
     folders = getFolders(".")
-    type = argv[1]
+    type = str(argv[1]).lower()
     try:
         for folder in folders:
             chdir(folder)
-            if type == "7z":
-                compress_7z(folder)
-            elif type == "zip":
-                compress_zip(folder)
-            else:
-                print("Type must be 7z or zip")
-            move(f'{folder}.{type}', "..")
+            if not is_empty(folder):
+                if type == "7z":
+                    compress_7z(folder)
+                else:
+                    compress_zip(folder)
+                move(f'{folder}.{type}', "..")
             chdir("..")
     except:
         print("You must specify a type of compression as a first argument: 7z or zip")
 def getFolders(path):
     return [f for f in listdir(path) if not isfile(join(path, f))]
+
+# check if the directory is empty
+def is_empty(dir):
+    return len(listdir(dir)) == 0
 
 def compress_zip(item):
     subprocess.run(f'7z.exe a -bt -tzip -x"!*.ini" -r "{item}.zip" *.*', shell=True, check=True)
