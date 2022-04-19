@@ -1,5 +1,5 @@
 import subprocess, os, argparse
-import concurrent.futures
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 def print_sign(text):
     top_bottom_bar = '=' * (len(text) + 8)
@@ -11,14 +11,10 @@ def print_sign(text):
     print(space)
     print(top_bottom_bar)
 
-def getFiles(path, decode=False):
+def getFiles(path, supported_format):
     files = []
     for file in os.listdir(path):
-        if decode:
-            supported_format = ["jxl"]
-        else:
-            supported_format = ["exr", "gif", "jpeg", "jpg", "pfm", "pgm", "ppm", "pgx", "png"]
-        if file.split('.')[-1].lower() in supported_format:
+        if file.split('.')[-1] in supported_format:
             files.append(file)
     return files
 
@@ -31,8 +27,7 @@ def decode(file):
     subprocess.run(f'djxl "{file}" "{filename}.png" -q 100', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def getArgs():
-    parser = argparse.ArgumentParser(description="Convert image files to jxl. If none argument is given, all files in current directory will be converted.")
-    # parser.add_argument("-i", help="Input supported file (jpg, png, gif, exr, jpeg, pfm, pgm, ppm, pgx)", type=str, required=False)
+    parser = argparse.ArgumentParser(description="JPEG XL Batch Encoder/Decoder. Supported formats: exr, gif, jpeg, jpg, pfm, pgm, ppm, pgx, png")
     parser.add_argument("-d", help="Decode jxl file to png", action="store_true", required=False)
     return parser.parse_args()
 
@@ -41,28 +36,36 @@ def main():
     args = getArgs()
     convert_failed = []
 
-    if args.d:
-        files = getFiles(os.getcwd(), True)
-        with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
-            for item in files:
-                curr_thread = executor.submit(decode, item)
-                if not curr_thread.result():
-                    print(f'{item} converted to .png')
-                else:
-                    convert_failed.append(item)
+    # Encode to jxl
     if not args.d:
-        files = getFiles(os.getcwd())
-        with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
-            for item in files:
-                curr_thread = executor.submit(encode, item)
-                if not curr_thread.result():
-                    print(f'{item} converted to .jxl')
-                else:
-                    convert_failed.append(item)
+        files = getFiles(os.getcwd(), ["exr", "gif", "jpeg", "jpg", "pfm", "pgm", "ppm", "pgx", "png"])
+        with ProcessPoolExecutor(max_workers=4) as executor:
+            tasks = {executor.submit(encode, file): file for file in files}
+            for task in as_completed(tasks):
+                file = tasks[task]
+                try:
+                    if not task.result():
+                        print(f"{file} converted successfully to jxl")
+                except:
+                    convert_failed.append(file)
+    # Decode jxl to png
+    if args.d:
+        files = getFiles(os.getcwd(), ["jxl"])
+        with ProcessPoolExecutor(max_workers=4) as executor:
+            tasks = {executor.submit(decode, file): file for file in files}
+            for task in as_completed(tasks):
+                file = tasks[task]
+                try:
+                    if not task.result():
+                        print(f"{file} converted successfully to png")
+                except:
+                    convert_failed.append(file)
+
     if len(convert_failed) > 0:
-        print_sign(f'{len(convert_failed)} files failed to convert to jxl')
+        print_sign(f'{len(convert_failed)} files failed to convert')
         for item in convert_failed:
             print(item)
+
     print_sign("Press Enter to exit...")
     input()
 
