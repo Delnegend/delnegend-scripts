@@ -58,6 +58,8 @@ Some script I wrote to do some automation stuffs.
     ```
     BatchJXL.py [-d]
     ```
+- BatchMKV2HLS: spliting multiple MKV into HLS streams
+- ComparePNG: compare differences of two PNG files
 - merge-all-mp4: merge all segments of videos in folder(s) in working folder to mp4
 
   - <details>
