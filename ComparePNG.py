@@ -18,3 +18,4 @@ imageBgs = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
 
 if __name__ == "__main__":
 	print(f'SSIM: {ssim(imageAgs, imageBgs)}, MSE: {mse(imageA, imageB)}')
+	input("Press Enter to exit...")
