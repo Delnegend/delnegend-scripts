@@ -1,21 +1,15 @@
 import subprocess, os, argparse
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-def print_sign(text):
-    top_bottom_bar = '=' * (len(text) + 8)
-    space = '=' + ' ' * (len(text) + 6) + '='
-    message = '=' + ' ' * 3 + text + ' ' * 3 + '='
-    print(top_bottom_bar)
-    print(space)
-    print(message)
-    print(space)
-    print(top_bottom_bar)
-
-def getFiles(path, supported_format):
+# list files recursively
+def getFiles(path, ext):
     files = []
     for file in os.listdir(path):
-        if file.split('.')[-1] in supported_format:
-            files.append(file)
+        if os.path.isfile(os.path.join(path, file)):
+            if file.split('.')[-1] in ext:
+                files.append(os.path.join(path, file))
+        else:
+            files += getFiles(os.path.join(path, file), ext)
     return files
 
 def encode(file):
@@ -32,7 +26,6 @@ def getArgs():
     return parser.parse_args()
 
 def main():
-
     args = getArgs()
     convert_failed = []
 
@@ -48,6 +41,7 @@ def main():
                         print(f"{file} converted successfully to jxl")
                 except:
                     convert_failed.append(file)
+
     # Decode jxl to png
     if args.d:
         files = getFiles(os.getcwd(), ["jxl"])
@@ -62,11 +56,11 @@ def main():
                     convert_failed.append(file)
 
     if len(convert_failed) > 0:
-        print_sign(f'{len(convert_failed)} files failed to convert')
+        print(f'{len(convert_failed)} files failed to convert')
         for item in convert_failed:
             print(item)
 
-    print_sign("Press Enter to exit...")
+    print("\nPress Enter to exit...\n")
     input()
 
 if __name__ == '__main__':
