@@ -4,9 +4,6 @@ import shutil
 import sys
 import pathlib
 
-def filesize(item):
-    return os.stat(item).st_size
-
 def main():
     tempPathName = "newFilesBigger"
     pathlib.Path(tempPathName).mkdir(parents=True, exist_ok=True)
@@ -22,7 +19,7 @@ def main():
         # check if new file is exist, if not, ignore, else compare size and move both old and new files if the new file is bigger
         newFile = oldFile.replace(oldFormat, newFormat)
         if newFile in newFiles:
-            if filesize(oldFile) > filesize(newFile):
+            if os.path.getsize(oldFile) > os.path.getsize(newFile):
                 shutil.move(oldFile, tempPathName)
                 shutil.move(newFile, tempPathName)
 

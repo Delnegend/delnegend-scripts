@@ -1,24 +1,27 @@
-# Requirement(s): Pillow
-from PIL import Image
-from os import listdir, system
-from os.path import isfile, join
 from pathlib import Path
 from shutil import move
+from dngnd import dimension, list_files
 
 Path("./Portrait/").mkdir(parents=True, exist_ok=True)
 Path("./Square/").mkdir(parents=True, exist_ok=True)
 Path("./Landscape/").mkdir(parents=True, exist_ok=True)
-filelist = [f for f in listdir("./") if isfile(join("./", f))]
-for file in filelist:
-  try:
-    img = Image.open(file)
-    width, height = img.size
-    img.close()
-    if width < height:
-      move(file, './Portrait/'+file)
-    elif width == height:
-      move(file, './Square/')
-    elif width > height:
-      move(file, './Landscape/')
-  except:
-    print("Not An Image")
+
+def main():
+    for file in list_files(".", [], recursive=True):
+        try:
+            width, height = dimension(file)
+            if width > height:
+                move(file, "./Landscape/")
+            elif width < height:
+                move(file, "./Portrait/")
+            else:
+                move(file, "./Square/")
+        except:
+            print("Not An Image")
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        print(e)
+    input("\nPress enter to exit...")
