@@ -31,7 +31,7 @@ def stage_resize(main_folder, pack, args):
 
 
 def stage_copy_ani(upscale_folder):
-    animations = list_files(".", [".mp4", ".mkv", ".gif"], True)
+    animations = list_files(".", [".mp4", ".mkv", ".gif", ".webm"], True)
     if len(animations) > 0:
         print_sign("Copying gif and mp4 files", "small")
         for f in animations:

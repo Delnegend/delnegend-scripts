@@ -1,8 +1,8 @@
 import os
+import dngnd
 from time import time
 from subprocess import run, DEVNULL
 from argparse import ArgumentParser
-from dngnd import *
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 def get_args():
@@ -16,7 +16,7 @@ def get_args():
 def report_size(old_file, new_file):
     old_size = os.path.getsize(old_file)
     new_size = os.path.getsize(new_file)
-    return f"{hsize(old_size)} -> {hsize(new_size)} ~ {round((new_size/old_size)*100, 2)}%"
+    return f"{dngnd.hsize(old_size)} -> {dngnd.hsize(new_size)} ~ {round((new_size/old_size)*100, 2)}%"
 
 
 def encode(file):
@@ -46,8 +46,8 @@ def main(args):
         before_size, after_size = 0, 0
         timer = time()
         formats = args.formats.split(' ') if args.formats else [".exr", ".gif", ".jpeg", ".jpg", ".pfm", ".pgm", ".ppm", ".pgx", ".png"]
-        files = list_files(".", formats, True)
-        with ProcessPoolExecutor(max_workers=THREADS) as executor:
+        files = dngnd.list_files(".", formats, True)
+        with ProcessPoolExecutor(max_workers=dngnd.THREADS) as executor:
             tasks = {executor.submit(encode, file): file for file in files}
             for task in as_completed(tasks):
                 res = tasks[task]
@@ -60,9 +60,9 @@ def main(args):
 
     # Decode jxl to png
     if args.d:
-        files = list_files(os.getcwd(), [".jxl"], True)
+        files = dngnd.list_files(os.getcwd(), [".jxl"], True)
         timer = time()
-        with ProcessPoolExecutor(max_workers=THREADS) as executor:
+        with ProcessPoolExecutor(max_workers=dngnd.THREADS) as executor:
             tasks = {executor.submit(decode, file): file for file in files}
             for task in as_completed(tasks):
                 res = tasks[task]
@@ -71,9 +71,9 @@ def main(args):
                 else:
                     convert_failed.append(res)
 
-    print(f'\n==> {len(files) - len(convert_failed)} file(s) converted in {htime(time() - timer)}')
+    print(f'\n==> {len(files) - len(convert_failed)} file(s) converted in {dngnd.htime(time() - timer)}')
     if not args.d:
-        print(f'{hsize(before_size)} -> {hsize(after_size)} ~ {round((after_size/before_size)*100, 2)}% | {htime(time() - timer)}')
+        print(f'{dngnd.hsize(before_size)} -> {dngnd.hsize(after_size)} ~ {round((after_size/before_size)*100, 2)}% | {dngnd.htime(time() - timer)}')
     if len(convert_failed) > 0:
         print(f'\n==> {len(convert_failed)} file(s) failed to convert')
         for item in convert_failed:
