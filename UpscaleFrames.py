@@ -1,71 +1,89 @@
-from socket import timeout
-import subprocess as sp
-import argparse
-import os
 import time
+import argparse
+import subprocess as sp
+import os
 
-def parse_args():
+
+def getArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', type=str, help='Input video file')
-    parser.add_argument('-f', '--fast', help='Use Low-Res model for faster upscaling', action='store_true', default=False)
+    parser.add_argument('-i', '--input', help='input media file', required=True)
+    parser.add_argument('-max', help='max dimension', default="h2160")
+    parser.add_argument('-model', help='fast/details', default="details", choices=["fast", "details"])
+    parser.add_argument('-update_freq', help='Change how frequent the progress bar update', default=3, type=int)
     return parser.parse_args()
 
 
-def num_frames(folder):
-    return len([name for name in os.listdir(folder) if os.path.isfile(os.path.join(folder, name))])
+def Dimension(media):
+    cmd = ['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=s=x:p=0', media]
+    w, h = sp.check_output(cmd).decode('utf-8').split('x')
+    return int(w), int(h)
 
-def secondsToStr(t):
-    hour = int(t / 3600)
-    min = int((t - hour * 3600) / 60)
-    sec = int(t - hour * 3600 - min * 60)
-    return "%d:%02d:%02d" % (hour, min, sec)
 
-def progress_bar(total, current, begin_time):
-    size = 20
-    curr_time = time.time()
-    elapsed = curr_time - begin_time
-    eta = elapsed / current * (total - current) if current > 0 else 0
-    time_finished = curr_time + eta
+def humanReadableTime(seconds):
+    hour = int(seconds / 3600)
+    minute = int((seconds % 3600) / 60)
+    second = int(seconds % 60)
+    return f'{hour:02d}:{minute:02d}:{second:02d}'
 
-    # time finished in HH:MM:SS AM/PM
-    time_section = f"Elapsed {secondsToStr(elapsed)} - ETA {secondsToStr(eta)} - Finished {time.strftime('%I:%M:%S %p', time.localtime(time_finished))}"
-    bar_section = f"[{'=' * int(current / total * size)}{' ' * (size - int(current / total * size))}]"
-    percent_section = f"{int(current / total * 100)}%"
-    return f"{time_section} | {bar_section} {percent_section}"
+
+def progressBar(value, endvalue, start_time, bar_length=20):
+    percent = float(value) / endvalue if endvalue else 0
+    bar = '[' + '=' * int(round(percent * bar_length)-1) + '>' + ' ' * (bar_length - int(round(percent * bar_length))) + ']'
+    time_taken = time.time() - start_time
+    eta = (time_taken / value) * (endvalue - value) if value else 0
+    # calculate when the task will be finished with AM/PM
+    finish_at = time.localtime(time.time() + eta)
+    return f'{bar} {percent*100:.2f}% {humanReadableTime(time_taken)} / {humanReadableTime(eta)} ({time.strftime("%I:%M:%S %p", finish_at)})'
+
+
+def listFiles(path):
+    import os
+    return len([f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))])
+
 
 def main(args):
-    model = 'realesr-animevideov3' if args.fast else 'realesrgan-x4plus-anime'
-    frames_folder = args.input+"_frames"
-    upscaled_folder = args.input+"_upscaled"
-    os.makedirs(frames_folder) if not os.path.exists(frames_folder) else None
-    os.makedirs(upscaled_folder) if not os.path.exists(upscaled_folder) else None
 
-    print("Extracting...", end='\r')
+    # Creating folders
+    frames = args.input+'.frames'
+    upscale = args.input+'.upscale'
+    os.makedirs(frames) if not os.path.exists(frames) else None
+    os.makedirs(upscale) if not os.path.exists(upscale) else None
 
-    sp.call(f'ffmpeg.exe -i "{args.input}" -q:v 2 "{os.path.join(frames_folder, "%05d.png")}"', shell=False, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+    # Extract frames from video
+    print('Extracting frames...', end='\r')
+    sp.call(["ffmpeg", "-i", args.input, "-q:v", "2", os.path.join(frames, "%06d.jpg")], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+    frames_amount = listFiles(frames)
+    print(f'Extracted {frames_amount} frames')
+    # Calculate ratio for RealESRGAN
+    w, h = Dimension(args.input)
+    config_side = args.max[0].lower()
+    source_size = h
+    if (config_side == 'a' and w > h) or (config_side == 'w'):
+        source_size = w
+    ratio = 0
+    if source_size*2 >= int(args.max[1:]):
+        ratio = 2
+    elif source_size*3 >= int(args.max[1:]):
+        ratio = 3
+    else:
+        ratio = 4
+    if args.model == "details":
+        ratio = 4
+        model = "realesrgan-x4plus-anime"
+    else:
+        model = "realesr-animevideov3"
 
-    num_raw_frames = num_frames(frames_folder)
-    print(f"Extracted {num_raw_frames} frames")
-
-    print("Upscaling with model", model)
-
-    upscale_process = sp.Popen(f'realesrgan-ncnn-vulkan -i "{frames_folder}" -o "{upscaled_folder}" -n {model} -f jpg', shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
-
-    # Progress bar
-    begin_time = time.time()
-    upscaled_frame_placeholder = 0
-    while upscale_process.poll() is None:
-        num_upscaled_frames = num_frames(upscaled_folder)
-        if num_upscaled_frames > upscaled_frame_placeholder:
-            upscaled_frame_placeholder = num_upscaled_frames
-            print(progress_bar(num_raw_frames, num_upscaled_frames, begin_time), end='\r')
-        time.sleep(5)
-    print()
-    upscale_process.wait()
-    print("Done!")
-    upscale_process.terminate()
-    sp.call('wscript D:\sound.vbs', shell=False, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+    print('Upscaling frames...')
+    start_time = time.time()
+    proc = sp.Popen(["realesrgan-ncnn-vulkan.exe", "-i", frames, "-o", upscale, "-n", model, "-s", str(ratio)], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+    while True:
+        print(progressBar(listFiles(upscale), frames_amount, start_time), end='\r')
+        if proc.poll() is not None:
+            break
+        time.sleep(args.update_freq)
+    print(progressBar(listFiles(upscale), frames_amount, start_time))
+    proc.wait()
 
 
 if __name__ == "__main__":
-    main(parse_args())
+    main(getArgs())
