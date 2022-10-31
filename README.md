@@ -5,18 +5,13 @@ Some script I wrote to do some automation stuffs.
 - BatchCompress: go into each folder and compress everything inside into zip or 7z and move the archive `../`
 - BatchJXL: batch convert images in the working folder to `.jxl`
   - Require: cjxl and djxl in path, download @ [github](https://github.com/libjxl/libjxl/releases) or [artifacts.lucaversari.it](https://artifacts.lucaversari.it/libjxl/libjxl/latest/) (dev's personal page)
-
-## Image processing
-- BatchUpscale
 - BatchMKV2HLS: spliting multiple MKV into HLS streams
-- ComparePNG: compare differences of two PNG files
-- merge-all-mp4: merge all segments of videos in folder(s) in working folder to mp4
-
-## Video processing
-
+- BatchResize: batch resize images
+- MergeAllMp4: merge all segments of videos in folder(s) in working folder to mp4
+- Resize: resize image using [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) then convert to jxl/avif/webp/jpg/png
 - SortByDimension: sort images in the working folder by their dimensions
   - Require: [Pillow](https://pypi.org/project/Pillow/)
-
+- UpscaleFrames: export frames from a video then upscale them using [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)
 
 - BatchCompress: go into each folder and compress everything inside into zip or 7z and move the archive `../`
 - BatchJXL: batch convert images in the working folder to `.jxl`
