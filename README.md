@@ -1,5 +1,4 @@
 # Scripts
-Some script I wrote to do some automation stuffs.
 
 ## File processing
 - BatchCompress: go into each folder and compress everything inside into zip or 7z and move the archive `../`
