@@ -12,13 +12,13 @@ WEBP_Q = 90  # 0-100, higher is better
 JPG_Q = 90  # 0-100, higher is better
 
 
-def dim(img):
+def dim(img: str) -> tuple:
     raw = sp.check_output(f'ffprobe -v error -show_entries stream=width,height -of default=noprint_wrappers=1:nokey=1 {img}', stderr=sp.DEVNULL)
     processed = raw.decode("utf-8").strip().split("\r\n")
     return int(processed[0]), int(processed[1])
 
 
-def inPath(name):
+def inPath(name: str) -> bool:
     return sp.call(f'where {name}', shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL) == 0
 
 
@@ -33,39 +33,39 @@ def parse_args():
     return parser.parse_args()
 
 
-def encode(input, output, format):
+def encode(input: str, output: str) -> None:
+    format = os.path.splitext(output)[1][1:]
     if format == "png":
-        cmd = f'ffmpeg -i {input} -q:v 2 {output}.png'
+        cmd = f'ffmpeg -i {input} -q:v 2 {output}'
         print("ffmpeg-png:", cmd)
     if format in ["jpg", "jpeg"]:
         if inPath("cjpeg-static"):
-            cmd = f'cjpeg-static -q {JPG_Q} -outfile {output}.jpg {input}'
+            cmd = f'cjpeg-static -q {JPG_Q} -outfile {output} {input}'
             print("cjpeg-static:", cmd)
         else:
-            cmd = f'ffmpeg -i {input} -q:v 2 {output}.jpg'
+            cmd = f'ffmpeg -i {input} -q:v 2 {output}'
             print("ffmpeg-jpg:", cmd)
     elif format == "webp":
-        cmd = f'ffmpeg -i {input} -q:v 2 -c:v libwebp -quality {WEBP_Q} -compression_level 6 {output}.webp'
+        cmd = f'ffmpeg -i {input} -q:v 2 -c:v libwebp -quality {WEBP_Q} -compression_level 6 {output}'
         print("ffmpeg-webp:", cmd)
     elif format == "avif":
         if inPath("avifenc"):
-            cmd = f'avifenc -y {AVIF_PIX_FMT} -d 10 -c aom -a aq-mode=1 -a cq-level={AVIF_CQ} -a enable-chroma-deltaq=1 -a tune=ssim {input} {output}.avif'
+            cmd = f'avifenc -y {AVIF_PIX_FMT} -d 10 -c aom --min 0 --max 63 --minalpha 0 --maxalpha 63 -a aq-mode=1 -a cq-level={AVIF_CQ} -a enable-chroma-deltaq=1 -a tune=ssim {input} {output}'
             print("avifenc:", cmd)
         else:
-            cmd = f'ffmpeg -i {input} -c:v libaom-av1 -cpu-used 6 -aq-mode 1 -pix_fmt yuv{AVIF_PIX_FMT}p10le -aom-params enable-chroma-deltaq=1:cq-level={AVIF_CQ} {output}.avif'
+            cmd = f'ffmpeg -i {input} -c:v libaom-av1 -cpu-used 6 -aq-mode 1 -pix_fmt yuv{AVIF_PIX_FMT}p10le -aom-params enable-chroma-deltaq=1:cq-level={AVIF_CQ} {output}'
             print("ffmpeg-avif:", cmd)
     elif format == "jxl":
         if inPath("cjxl"):
-            cmd = f'cjxl {input} {output}.jxl -d {JXL_DISTANCE} -e {JXL_EFFORT}'
+            cmd = f'cjxl {input} {output} -d {JXL_DISTANCE} -e {JXL_EFFORT}'
             print("cjxl:", cmd)
         else:
-            cmd = f'ffmpeg -i {input} -c:v libjxl -distance {JXL_DISTANCE} -effort {JXL_EFFORT} {output}.jxl'
+            cmd = f'ffmpeg -i {input} -c:v libjxl -distance {JXL_DISTANCE} -effort {JXL_EFFORT} {output}'
             print("ffmpeg-jxl:", cmd)
     sp.call(cmd, shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
 
 
 def main(args):
-    name = os.path.splitext(args.input)[0]
     width, height = dim(args.input)
     if width == 0 or height == 0:
         print("Invalid image")
@@ -80,20 +80,27 @@ def main(args):
     # =======
     # UPSCALE
     # =======
-    upscaled_file = f"{name}_upscaled.png"
+    upscaled_file = f"{args.output}.upscaled.png"
     if ((mode == "w") and (width < max_res)) or ((mode == "h") and (height < max_res)) or args.force:
         print("==> Upscaling...")
+
+        # Determine model and scale factor
         scale = 2 if width*2 >= max_res and height*2 >= max_res else 3 if width*3 >= max_res and height*3 >= max_res else 4
         scale = 4 if args.model == "details" else scale
         model = "realesrgan-x4plus-anime" if args.model == "details" else "realesr-animevideov3"
         print(f"Using model {model} with scale {scale}")
-        sp.call(f'realesrgan-ncnn-vulkan -n {model} -s {scale} -i {args.input} -o {upscaled_file}', shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+
+        sp.call(f'realesrgan-ncnn-vulkan -n {model} -s {scale} -i {args.input} -o {upscaled_file} -f png', shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+
+        # Check if output image need to resize
         if mode == "w" and dim(upscaled_file)[0] > max_res:
             sp.call(f'ffmpeg -i {upscaled_file} -vf scale={max_res}:-1 {upscaled_file}_.png', shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+            os.remove(upscaled_file)
+            os.rename(f"{upscaled_file}_.png", upscaled_file)
         elif mode == "h" and dim(upscaled_file)[1] > max_res:
             sp.call(f'ffmpeg -i {upscaled_file} -vf scale=-1:{max_res} {upscaled_file}_.png', shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
-        os.remove(upscaled_file)
-        os.rename(f"{upscaled_file}_.png", upscaled_file)
+            os.remove(upscaled_file)
+            os.rename(f"{upscaled_file}_.png", upscaled_file)
 
     # ======
     # ENCODE
@@ -101,13 +108,11 @@ def main(args):
     print("==> Encoding...")
     # if args.output is empty || is the same as args.input => set to input.result
     output = args.output if args.output and args.output != args.input else f"{args.input}.result"
-    if not os.path.splitext(output)[1]:  # if output has no extension, use the args.format list
-        # convert to lowercase, replace jpeg with jpg, remove duplicates
-        out_formats = list(dict.fromkeys([x.lower().replace("jpeg", "jpg") for x in args.format.split(" ")]))
-        for fmt in out_formats:
-            encode(upscaled_file if os.path.exists(upscaled_file) else args.input, output, fmt.lower())
-    else:  # if output has an extension, only encode to that format
-        encode(upscaled_file if os.path.exists(upscaled_file) else args.input, output, os.path.splitext(output)[1][1:])
+    # convert to lowercase, replace jpeg with jpg, remove duplicates
+    out_formats = list(dict.fromkeys([x.lower().replace("jpeg", "jpg") for x in args.format.split(" ")]))
+    for fmt in out_formats:
+        print(f"Encoding to {fmt}")
+        encode(upscaled_file if os.path.exists(upscaled_file) else args.input, output+"."+fmt)
 
     # ========
     # CLEAN UP

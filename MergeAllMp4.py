@@ -1,85 +1,109 @@
-from os import remove, mkdir, chdir
-from os.path import exists
-from shutil import move
-from re import search
-from subprocess import Popen, call, DEVNULL
-from dngnd import *
+import os
+import shutil
+import re
+import subprocess as sp
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
-def is_corrupt(file):
-    ffmpeg_check = f'ffmpeg -y -i "{file}" -t 2 -r 0.5 "{file}.png"'
-    call(ffmpeg_check, shell=True, stdout=DEVNULL, stderr=DEVNULL)
-    if exists(f"{file}.png"):
-        remove(f"{file}.png")
-        return False
-    else:
+def norm(path: str) -> str:
+    return os.path.normpath(path).replace("\\", "/")
+
+def list(type: str, path: str, ext: list, recursive: bool):
+    result = []
+    for root, dirs, files in os.walk(path):
+        if type == "file":
+            for file in files:
+                if not ext or file.split(".")[-1] in ext:
+                    result.append(norm(os.path.join(root, file)))
+        elif type == "folder":
+            for folder in dirs:
+                result.append(norm(os.path.join(root, folder)))
+        if not recursive:
+            break
+    return result
+
+class BCOLOR:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+class Footage(object):
+
+    def __init__(self, host_folder: str):
+        self.host_folder = ""
+        self.parts = []
+        self.host_folder = host_folder
+        for item in list("file", self.host_folder, ["mp4"], True):
+            self.parts.append(item)
+
+    def isCorrupt(self, file: str) -> bool:
+        sp.run(f'ffmpeg -y -i "{file}" -t 2 -r 0.5 "{file}.jpg"', shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+        if os.path.exists(f"{file}.jpg"):
+            os.remove(f"{file}.jpg")
+            return False
         return True
+
+    def checkCorrupt(self) -> None:
+        with ProcessPoolExecutor(max_workers=8) as executor:
+            tasks = {executor.submit(self.isCorrupt, file): file for file in self.parts}
+            for task in as_completed(tasks):
+                try:
+                    result = task.result()
+                except Exception as e:
+                    print(e)
+                else:
+                    print(BCOLOR.FAIL + tasks[task] + BCOLOR.ENDC) if result else None
+
+    def printList(self):
+        for line in self.parts:
+            print(line)
+
+    def writeList(self):
+        with open(f"{self.host_folder}/list.txt", "w") as file:
+            file.write("")
+        for line in self.parts:
+            line = line.replace(f"{self.host_folder}/", "")
+            with open(f"{self.host_folder}/list.txt", "a") as file:
+                file.write(f"file '{line}'\n")
+
+    def merge(self):
+        sp.call(f'ffmpeg -y -f concat -safe 0 -i "{self.host_folder}/list.txt" -c copy "{self.host_folder}.mkv"', shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+        os.remove(f"{self.host_folder}/list.txt")
+
+    def __str__(self):
+        return self.host_folder
 
 
 def main():
-    all_parts = list_folders(".", False)
-    for item in all_parts:
-        # if item doesn't contain underscore and regex match \d{10}
-        if not search("_", item) and search("\d{10}", item):
-            day_folder = item[slice(6)] + "_" + \
-                item[slice(6, 8)] + "_" + item[slice(8, 10)]
-            if not exists(day_folder):
-                mkdir(day_folder)
-            move(item, day_folder)
-    day_vids = list_folders(".", False)
+    for f in list("file", ".", ["log", "jpg"], True):
+        os.remove(f)
 
-    # for each folder in YYYY_MM_DDs, merge every mp4 file into YYYY_MM_DD.mkv
-    for day_vid in day_vids:
-        if not search("\d{4}_\d{2}_\d{2}", day_vid):
-            continue
-        chdir(day_vid)
-        all_parts_in_day = list_files(".", [], True)
+    folders = [item for item in list("folder", ".", [], False) if re.search(r"^\d{10}$", item)]
+    for folder in folders:
+        date = f"{folder[:4]}_{folder[4:6]}_{folder[6:8]}"
+        os.makedirs(date, exist_ok=True)
+        shutil.move(folder, date)
 
-        # check for corrupt files and remove them
-        print(f"Checking for corrupt files of {day_vid}...")
-        corrupted_files = []
-        with ProcessPoolExecutor(max_workers=THREADS) as executor:
-            tasks = {executor.submit(is_corrupt, file): file for file in all_parts_in_day}
-            for task in as_completed(tasks):
-                try:
-                    if not task.result():
-                        continue
-                except:
-                    print(f"- {tasks[task]} is corrupted")
+    footages = [item for item in list("folder", ".", [], False) if re.search(r"\d{4}_\d{2}_\d{2}", item)]
 
-        for file in corrupted_files:
-            print(f"- {file} is corrupted")
-        if corrupted_files:
-            for file in corrupted_files:
-                remove(file)
-
-        # create merge.txt, contains path of every MP4 in YYYY_MM_DD and use ffmpeg to merge them
-        if not exists("merge.txt"):
-            with open("merge.txt", "w") as f:
-                f.write("")
-        for file in all_parts_in_day:
-            if not file.endswith(".mp4"):
-                continue
-            with open("merge.txt", "a") as f:
-                file = file.replace("\\", "/")
-                f.write(f"file {file}\n")
-        print("Merging files...")
-        ffmpeg_merge_all = f'ffmpeg -f concat -safe 0 -i merge.txt -c copy "..\{day_vid}.mkv"'
-
-        if not exists("merge.log"):
-            with open("merge.log", "w") as f:
-                f.write("")
-        with open("merge.log", "a") as f:
-            call(ffmpeg_merge_all, shell=True, stdout=f, stderr=f)
-        remove("merge.txt")
-
-        chdir("..")
-
+    for footage in footages:
+        print(f"{BCOLOR.OKBLUE}=== Processing {footage} ==={BCOLOR.ENDC}")
+        f = Footage(footage)
+        if not os.path.exists(f"{f.host_folder}/list.txt"):
+            print(f"{BCOLOR.WARNING}Checking for corrupt files...{BCOLOR.ENDC}")
+            f.checkCorrupt()
+            print(f"{BCOLOR.WARNING}Writing list...{BCOLOR.ENDC}")
+            f.writeList()
+        print(f"{BCOLOR.WARNING}Merging...{BCOLOR.ENDC}")
+        f.merge()
+        shutil.rmtree(f.host_folder)
+        del f
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        print(e)
-    input("\nPress enter to exit...")
+    main()
