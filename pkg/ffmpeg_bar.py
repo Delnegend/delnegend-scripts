@@ -41,7 +41,7 @@ class ffmpeg_bar(object):
         data += "=" * (len_message + 6) + "\n"
         return data
 
-    def start(self, log: bool = False) -> None:
+    def run(self, log: bool = False) -> None:
         fps_recored = []
         ffmpeg_params = self.ffmpeg_params
 
@@ -84,9 +84,6 @@ class ffmpeg_bar(object):
             self.__progress_bar(total_frame_count, total_frame_count, start_time),
             " "*3
         ))
-
-        # before = self.__human_readable_size(os.path.getsize(input_file))
-        # after = self.__human_readable_size(os.path.getsize(ffmpeg_params[-1]))
 
         before = human_readable.size(os.path.getsize(input_file))
         after = human_readable.size(os.path.getsize(ffmpeg_params[-1]))
