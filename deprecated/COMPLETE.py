@@ -2,7 +2,7 @@ import os
 import subprocess as sp
 import shutil
 import argparse
-from dngnd import *
+from pkg import print_sign, list
 
 
 def curr_path():
@@ -31,7 +31,7 @@ def stage_resize(main_folder, pack, args):
 
 
 def stage_copy_ani(upscale_folder):
-    animations = list_files(".", [".mp4", ".mkv", ".gif", ".webm"], True)
+    animations = list.list_file(".", [".mp4", ".mkv", ".gif", ".webm"], True)
     if len(animations) > 0:
         print_sign("Copying gif and mp4 files", "small")
         for f in animations:
@@ -48,7 +48,7 @@ def stage_avif(upscale_folder, main_folder, pack, args):
             f'7z.exe a -bt -tzip -x"!*.ini" -r "{os.path.join(main_folder, pack)}.zip" *.avif',
             shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
     else:
-        for i in list_files(".", [".avif"], True):
+        for i in list.list_file(".", [".avif"], True):
             os.rename(i, os.path.join(main_folder, pack, i))
     os.chdir(main_folder)
     shutil.rmtree(upscale_folder)
@@ -59,7 +59,7 @@ def stage_avif(upscale_folder, main_folder, pack, args):
 
 
 def from_raw(args):
-    packs = list_folders(args.input, True)
+    packs = list.list_folder(args.input, True)
     main_folder = os.getcwd()
     for pack in packs:
         print_sign("Processing pack: " + pack, "main")
@@ -72,7 +72,7 @@ def from_raw(args):
             sp.run(
                 f'7z.exe a -bt -t7z -x"!*.ini" -r "{os.path.join(main_folder, pack)}.7z" *.jxl *.mp4 *.gif',
                 shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
-            for file in list_files(".", [".jxl"], True):
+            for file in list.list_file(".", [".jxl"], True):
                 os.remove(file)
 
         # resize
@@ -89,7 +89,7 @@ def from_raw(args):
 
 # JXL --> PNG --> resize --> AVIF --> zip
 def from_jxl(args):
-    packs = list_folders(args.input, True)
+    packs = list.folder(args.input, True)
     main_folder = os.getcwd()
     for pack in packs:
         print_sign("Processing pack: " + pack, "main")
@@ -103,7 +103,7 @@ def from_jxl(args):
         upscale_folder = stage_resize(main_folder, pack, args)
 
         # remove PNG converted from JXL
-        for f in list_files(".", [".png"], True):
+        for f in list.file(".", [".png"], True):
             os.remove(f)
 
         # copy animations from pack to upscale_folder

@@ -1,14 +1,15 @@
 import os
-import dngnd
 import sys
 import shutil
+import pkg
 from datetime import datetime
 from time import time
 from argparse import ArgumentParser
 from subprocess import run, PIPE
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# -pix_fmt: run ffmpeg -pix_fmts to check available pixel formats
+THREADS = 4
+
 config = {
     'image': {
         'format': [".png", ".jpeg", ".jpg", ".tiff", ".tif", ".bmp"],
@@ -48,7 +49,7 @@ def parse_presets(file, ext, enc, rep):
     ext = ext.replace("{{ output }}", f'"{file}.y4m"')
     enc = enc.replace("{{ input }}", f'"{file}.y4m"')
     enc = enc.replace("{{ output }}", f'"{file}.ivf"')
-    enc = enc.replace("{{ threads }}", f'{dngnd.THREADS}')
+    enc = enc.replace("{{ threads }}", f'{THREADS}')
     rep = rep.replace("{{ input }}", f'"{file}.ivf"')
     rep = rep.replace("{{ output }}", f'"{name}.avif"')
     return name, ext, enc, rep
@@ -74,7 +75,7 @@ def convert(file: str, ext_: str, enc_: str, fallback_: str, repack_: str, log: 
 
     # getting dimension after extracting to raw frame(s) to avoid dimension mismatch
     if '{{ width }}' in enc or '{{ height }}' in enc:
-        w, h = dngnd.dimension(file)
+        w, h = pkg.dimension(file)
         enc = enc.replace("{{ width }}", str(w))
         enc = enc.replace("{{ height }}", str(h))
 
@@ -146,8 +147,8 @@ def main(args):
         'converted': 0,
     }
 
-    images = dngnd.list_files(args.input, config['image']['format'])
-    animations = dngnd.list_files(args.input, config['animation']['format'])
+    images = pkg.list.list_file(args.input, config['image']['format'])
+    animations = pkg.list.list_file(args.input, config['animation']['format'])
     all = images + animations
 
     # create log file if doesn't exist
@@ -203,8 +204,17 @@ def main(args):
                   config['animation']['fallback'],
                   config['animation']['repackager'],
                   stats, log)
-    print(f'{len(all) - len(stats["skip"]) - len(stats["fail"])} files converted in {dngnd.htime(time() - start)}')
-    print(dngnd.report_results(stats['original'], stats['converted'], start_timer, time()))
+
+    num_of_files_converted = len(all) - len(stats['skip']) - len(stats['fail'])
+    time_taken = pkg.human_readable.time(time() - start_timer)
+    print(f'{num_of_files_converted} files converted in {time_taken}')
+
+    readable_original_size = pkg.human_readable.size(stats['original'])
+    readable_converted_size = pkg.human_readable.size(stats['converted'])
+    ratio = f'{round((stats["converted"]/stats["original"])*100, 2)}%'
+
+    print(f'{readable_original_size} -> {readable_converted_size} ~ {ratio}')
+
     if len(stats['fail']) > 0:
         print(f'{len(stats["fail"])} files failed to convert')
         for f in stats['fail']:
