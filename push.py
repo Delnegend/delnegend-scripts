@@ -7,7 +7,7 @@ import string
 import shutil
 import platform
 import subprocess as sp
-import pkg.ffmpeg_bar
+from pkg.ffmpeg_bar import ffmpeg_bar
 from pkg.BCOLORS import BCOLORS
 
 MAX_SIZE_PER_PUSH = 100 * 1024 * 1024  # DO NOT GO BEYOND 4.88 GB
@@ -198,7 +198,7 @@ def main():
 
             ffmpeg_params = ["-i", movie_path, "-map", "0:v:0", "-map", "0:a:0", "-c", "copy", "-start_number", "0", "-hls_time", str(HLS_SPLIT_DURATION), "-hls_list_size", "0", "-hls_segment_filename", "%03d.ts", "-f", "hls", "index.m3u8"]
 
-            progress = pkg.ffmpeg_bar(ffmpeg_params, FFMPEG_BINARY, FFPROBE_BINARY)
+            progress = ffmpeg_bar(ffmpeg_params, FFMPEG_BINARY, FFPROBE_BINARY)
             progress.start()
             shutil.move(movie_path, "../")
             os.chdir("../")
