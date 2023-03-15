@@ -1,9 +1,9 @@
 import subprocess as sp
 import json
 
-def ffprobe(file: str) -> dict:
+def ffprobe(file: str, ffprobe_binary: str = 'ffprobe') -> dict:
     proc = sp.Popen(
-        ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", file],
+        [ffprobe_binary, "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", file],
         stdout=sp.PIPE,
         stderr=sp.PIPE,
         universal_newlines=True)
