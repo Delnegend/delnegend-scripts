@@ -1,6 +1,6 @@
 import os
 
-def list_file(path: str, ext: list, recursive=True, get_full_path=False):
+def file(path: str, ext: list, recursive=True, get_full_path=False):
     full_path = os.path.abspath(path) if not os.path.isabs(path) else path
     rel_path = os.path.relpath(path, os.getcwd())
     files = []
@@ -12,7 +12,7 @@ def list_file(path: str, ext: list, recursive=True, get_full_path=False):
                 files.append(os.path.join(full_path, f) if get_full_path else os.path.join(rel_path, f))
         else:
             if recursive:
-                files += list_file(os.path.join(path, f), ext, recursive, get_full_path)
+                files += file(os.path.join(path, f), ext, recursive, get_full_path)
     return files
 
 
