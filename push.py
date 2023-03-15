@@ -1,14 +1,14 @@
 import os
-import sys
-import subprocess as sp
-import time
-import shutil
-import json
 import re
+import sys
 import math
 import random
 import string
+import shutil
 import platform
+import subprocess as sp
+import pkg.ffmpeg_bar
+from pkg.BCOLORS import BCOLORS
 
 MAX_SIZE_PER_PUSH = 100 * 1024 * 1024  # DO NOT GO BEYOND 4.88 GB
 MAX_SIZE_PER_REPO = 9 * 1024 * 1024 * 1024  # 9.5 GB
@@ -25,79 +25,16 @@ if "wsl2" in platform.platform().lower():
     FFPROBE_BINARY = "ffprobe.exe"
     FFMPEG_BINARY = "ffmpeg.exe"
 
-# =====================
-# ffmpeg + progress bar
-# =====================
-class FfmpegBar(object):
-    def ___humanReadableTime(self, seconds):
-        hour = int(seconds / 3600)
-        minute = int((seconds % 3600) / 60)
-        second = int(seconds % 60)
-        return f'{hour:02d}:{minute:02d}:{second:02d}'
-    def __progressBar(self, value, endvalue, start_time, bar_length=20):
-        percent = float(value) / endvalue if endvalue else 0
-        bar_fill = '=' * int(round(percent * bar_length))
-        bar_empty = ' ' * (bar_length - len(bar_fill))
-        bar = f'{bar_fill}{bar_empty}'
-        time_taken = time.time() - start_time
-        eta = (time_taken / value) * (endvalue - value) if value else 0
-        finish_at = time.localtime(time.time() + eta)
-        return f'{value} / {endvalue} [{bar}] {percent*100:.2f}% {self.___humanReadableTime(time_taken)} / {self.___humanReadableTime(eta)} ({time.strftime("%I:%M:%S %p", finish_at)})'
-    def __framecount(self, path):
-        proc = sp.Popen(
-            f"{FFPROBE_BINARY} -select_streams v:0 -v quiet -print_format json -show_format -show_streams -show_error"
-            .split() + [path],
-            stdout=sp.PIPE,
-            stderr=sp.PIPE)
-        out, _ = proc.communicate()
-        data = json.loads(out)
-        duration = float(data['format']['duration'])
-        fps = float(data['streams'][0]['avg_frame_rate'].split('/')[0]) / float(data['streams'][0]['avg_frame_rate'].split('/')[1])
-        return int(duration * fps)
-    def __parseFfmpegStatus(self, stdout):
-        data = stdout.readline()
-        if not data or not data.startswith('frame='):
-            return None
-        frame = data.split('frame=')[1].split('fps=')[0].strip()
-        fps = data.split('fps=')[1].split('q=')[0].strip()
-        return {'frame': frame, 'fps': fps}
-    def __init__(self, ffmpeg_params: list) -> None:
-        self.params = ffmpeg_params
-    def start(self) -> None:
-        total_frames = int(self.__framecount(self.params[self.params.index('-i') + 1]))
-        start_time = time.time()
-        proc = sp.Popen([FFMPEG_BINARY] + self.params,
-                        stdout=sp.PIPE,
-                        stderr=sp.PIPE,
-                        universal_newlines=True)
-        while proc.poll() is None:
-            data = self.__parseFfmpegStatus(proc.stderr)
-            if data is not None:
-                print(f"{data['fps']}fps {self.__progressBar(int(data['frame']), total_frames, start_time)}", end=f"{' '*10}\r")
-                sys.stdout.flush()
-        print(f"0.00fps {self.__progressBar(total_frames, total_frames, start_time)}{' '*10}")
-        proc.wait()
-
 # =======================
 # region: COSMETIC STUFFS
 # =======================
-
-class BCOLORS:
-    HEADER = '\033[95m'
-    GREEN = '\033[92m'
-    RED = '\033[91m'
-    BLUE = '\033[94m'
-    ENDC = '\033[0m'
-    YELLOW = '\033[93m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 
 def printSign(msg: str, color: str) -> None:
     msglen = len(msg) + 4
     print(color + "╔" + "═" * msglen + "╗")
     print("║  " + msg + "  ║")
-    print("╚" + "═" * msglen + "╝" + BCOLORS.ENDC)
+    print("╚" + "═" * msglen + "╝" + BCOLORS.END)
 
 
 def cls():
@@ -109,11 +46,14 @@ def cls():
 # FUNCTIONAL STUFFS
 # =================
 
+
 def normalizePath(path: str) -> str:
     return os.path.normpath(path).replace("\\", "/")
 
+
 def isInPath(program: str) -> bool:
     return shutil.which(program) is not None
+
 
 def list(type: str, path: str, ext: list) -> list:
     results = []
@@ -127,6 +67,7 @@ def list(type: str, path: str, ext: list) -> list:
                 results.append(normalizePath(os.path.join(path, elem)))
     return results
 
+
 def getUserInputNumber(prompt: str, default: int = 1) -> int:
     option = input(prompt)
     while True:
@@ -137,12 +78,13 @@ def getUserInputNumber(prompt: str, default: int = 1) -> int:
             option = int(option)
             break
         except:
-            option = input(f"{BCOLORS.RED}Input must be a number: {BCOLORS.ENDC}")
+            option = input(f"{BCOLORS.RED}Input must be a number: {BCOLORS.END}")
     return option
+
 
 def getUserInputOption(options: list, default: int = 1) -> str:
     for i, option in enumerate(options):
-        print(f"{BCOLORS.YELLOW}[{i + 1}]{BCOLORS.ENDC} {option}")
+        print(f"{BCOLORS.YELLOW}[{i + 1}]{BCOLORS.END} {option}")
     option = input("Enter your choice: ")
     while True:
         try:
@@ -150,16 +92,18 @@ def getUserInputOption(options: list, default: int = 1) -> str:
                 option = default
                 break
             if int(option) > len(options):
-                option = input(f"{BCOLORS.RED}Input must be between 1 and {len(options)}: {BCOLORS.ENDC}")
+                option = input(f"{BCOLORS.RED}Input must be between 1 and {len(options)}: {BCOLORS.END}")
                 continue
             option = int(option)
             break
         except:
-            option = input(f"{BCOLORS.RED}Input must be an integer: {BCOLORS.ENDC}")
+            option = input(f"{BCOLORS.RED}Input must be an integer: {BCOLORS.END}")
     return options[option - 1]
+
 
 def generateRandomAlphanumeric(length: int) -> str:
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+
 
 class PushToRepo():
     def __init__(self, parts_folder: str, repo_folder: str) -> None:
@@ -199,27 +143,28 @@ class PushToRepo():
             _percentage = f"{int(num_of_files_in_repo / all_files * 100)}%"
             print(f" {_number} {_bar} {_percentage}")
 
+
 def main():
     cls()
     if not isInPath(FFMPEG_BINARY) or not isInPath(FFPROBE_BINARY):
-        print(f"{BCOLORS.RED}ffmpeg and/or ffprobe not found in PATH{BCOLORS.ENDC}")
+        print(f"{BCOLORS.RED}ffmpeg and/or ffprobe not found in PATH{BCOLORS.END}")
         sys.exit(1)
     if not isInPath("git"):
-        print(f"{BCOLORS.RED}git not found in PATH{BCOLORS.ENDC}")
+        print(f"{BCOLORS.RED}git not found in PATH{BCOLORS.END}")
         sys.exit(1)
 
-    printSign("Config", BCOLORS.HEADER)
+    printSign("Config", BCOLORS.CYAN)
     lastMsg = ""
     while True:
         cls()
         print(lastMsg) if lastMsg != "" else None
-        printSign("Main menu", BCOLORS.HEADER)
+        printSign("Main menu", BCOLORS.CYAN)
 
-        print(f"{BCOLORS.YELLOW}[1]{BCOLORS.ENDC} Split a movie")
-        print(f"{BCOLORS.YELLOW}[2]{BCOLORS.ENDC} Clone a repo")
-        print(f"{BCOLORS.YELLOW}[3]{BCOLORS.ENDC} Push to a repo")
-        print(f"{BCOLORS.YELLOW}[4]{BCOLORS.ENDC} Change global username and email")
-        print(f"{BCOLORS.YELLOW}[5]{BCOLORS.ENDC} Exit")
+        print(f"{BCOLORS.YELLOW}[1]{BCOLORS.END} Split a movie")
+        print(f"{BCOLORS.YELLOW}[2]{BCOLORS.END} Clone a repo")
+        print(f"{BCOLORS.YELLOW}[3]{BCOLORS.END} Push to a repo")
+        print(f"{BCOLORS.YELLOW}[4]{BCOLORS.END} Change global username and email")
+        print(f"{BCOLORS.YELLOW}[5]{BCOLORS.END} Exit")
 
         choice = ""
         while True:
@@ -235,22 +180,25 @@ def main():
             # ----------------- Select film -----------------
             movie_path = ""
             cls()
-            printSign("What movie file do you want to split?", BCOLORS.HEADER)
+            printSign("What movie file do you want to split?", BCOLORS.CYAN)
             available_movies = list("file", ".", [".mp4", ".mkv"])
             if len(available_movies) == 0:
-                print(f"{BCOLORS.RED}No movie file found in current directory{BCOLORS.ENDC}")
+                print(f"{BCOLORS.RED}No movie file found in current directory{BCOLORS.END}")
                 continue
             movie_path = getUserInputOption(available_movies)
 
             # ----------------- Split film -----------------
             cls()
-            print(f"{BCOLORS.YELLOW}Selected movie: {BCOLORS.ENDC}{movie_path}")
-            printSign("Splitting movie", BCOLORS.HEADER)
+            print(f"{BCOLORS.YELLOW}Selected movie: {BCOLORS.END}{movie_path}")
+            printSign("Splitting movie", BCOLORS.CYAN)
             splitted_movie_dir = "parts_" + re.sub(r"[^a-zA-Z0-9]", "_", movie_path)
             os.makedirs(splitted_movie_dir, exist_ok=True)
             os.rename(movie_path, os.path.join(splitted_movie_dir, movie_path))
             os.chdir(splitted_movie_dir)
-            progress = FfmpegBar(["-i", movie_path, "-map", "0:v:0", "-map", "0:a:0", "-c", "copy", "-start_number", "0", "-hls_time", str(HLS_SPLIT_DURATION), "-hls_list_size", "0", "-hls_segment_filename", "%03d.ts", "-f", "hls", "index.m3u8"])
+
+            ffmpeg_params = ["-i", movie_path, "-map", "0:v:0", "-map", "0:a:0", "-c", "copy", "-start_number", "0", "-hls_time", str(HLS_SPLIT_DURATION), "-hls_list_size", "0", "-hls_segment_filename", "%03d.ts", "-f", "hls", "index.m3u8"]
+
+            progress = pkg.ffmpeg_bar(ffmpeg_params, FFMPEG_BINARY, FFPROBE_BINARY)
             progress.start()
             shutil.move(movie_path, "../")
             os.chdir("../")
@@ -277,8 +225,8 @@ def main():
         if choice == "2":
             # ----------------- Clone repo -----------------
             cls()
-            printSign("Config repo", BCOLORS.HEADER)
-            numbers_of_repo = getUserInputNumber(f"{BCOLORS.YELLOW}How many repo do you want to clone?{BCOLORS.ENDC} (default: 1) ")
+            printSign("Config repo", BCOLORS.CYAN)
+            numbers_of_repo = getUserInputNumber(f"{BCOLORS.YELLOW}How many repo do you want to clone?{BCOLORS.END} (default: 1) ")
             repo_url_list = []
             for i in range(numbers_of_repo):
                 repo_url_list.append(input(f"Enter repo url {i+1}: "))
@@ -287,7 +235,7 @@ def main():
                 sp.run([GIT_WINDOWS_PATH, "clone", repo_url, repo_folder_name])
 
         if choice == "3":
-            numbers_of_parts = getUserInputNumber(f"{BCOLORS.YELLOW}How many part do you want to push?{BCOLORS.ENDC} (default: 1) ")
+            numbers_of_parts = getUserInputNumber(f"{BCOLORS.YELLOW}How many part do you want to push?{BCOLORS.END} (default: 1) ")
             pair_list = []
 
             # let user select pair(s) of parts folder and repo folder, remove the option when it's already selected
@@ -295,12 +243,12 @@ def main():
             all_repo_folder = [f for f in all_folder_list if os.path.exists(os.path.join(f, ".git"))]
             all_parts_folder = [f for f in all_folder_list if f not in all_repo_folder]
             for i in range(numbers_of_parts):
-                print(f"{BCOLORS.BLUE}\nPart {i+1}{BCOLORS.ENDC}")
-                print(f"{BCOLORS.YELLOW}Select parts folder{BCOLORS.ENDC}")
+                print(f"{BCOLORS.BLUE}\nPart {i+1}{BCOLORS.END}")
+                print(f"{BCOLORS.YELLOW}Select parts folder{BCOLORS.END}")
                 parts_folder = getUserInputOption(all_parts_folder)
                 all_parts_folder.remove(parts_folder) if parts_folder in all_parts_folder else None
 
-                print(f"{BCOLORS.YELLOW}Select repo folder{BCOLORS.ENDC}")
+                print(f"{BCOLORS.YELLOW}Select repo folder{BCOLORS.END}")
                 repo_folder = getUserInputOption(all_repo_folder)
                 all_repo_folder.remove(repo_folder) if repo_folder in all_repo_folder else None
                 pair_list.append((parts_folder, repo_folder))
@@ -310,8 +258,8 @@ def main():
                 ActionObject.pushLoop()
                 del ActionObject
         if choice == "4":
-            user_name = input(f"{BCOLORS.YELLOW}Enter your name: {BCOLORS.ENDC}")
-            user_email = input(f"{BCOLORS.YELLOW}Enter your email: {BCOLORS.ENDC}")
+            user_name = input(f"{BCOLORS.YELLOW}Enter your name: {BCOLORS.END}")
+            user_email = input(f"{BCOLORS.YELLOW}Enter your email: {BCOLORS.END}")
             sp.run([GIT_WINDOWS_PATH, "config", "--global", "user.name", user_name])
             sp.run([GIT_WINDOWS_PATH, "config", "--global", "user.email", user_email])
 
