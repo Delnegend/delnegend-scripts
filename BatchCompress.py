@@ -1,9 +1,9 @@
+from subprocess import run
 from os import listdir, chdir
 from argparse import ArgumentParser
-from dngnd import THREADS
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from subprocess import run
 
+THREADS = 4
 
 def get_args():
     parser = ArgumentParser(

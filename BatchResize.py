@@ -1,12 +1,14 @@
 import os
-from argparse import ArgumentParser
-from shutil import copyfile
-from cv2 import resize
-import subprocess as sp
 import time
-from dngnd import list_files, dimension, htime, THREADS
+import subprocess as sp
+import pkg.list
+import pkg.dimension
+import pkg.human_readable
+from shutil import copyfile
+from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
+THREADS = 4
 
 def get_args():
     parser = ArgumentParser("Batch upscale")
@@ -29,7 +31,7 @@ def resize(file, args):
     extra_args = args.srgan_args
     side = args.side
 
-    height, width, _ = dimension(file)
+    height, width, _ = pkg.dimension(file)
     if height == 0 or width == 0:
         return False
     if side == "auto":
@@ -89,7 +91,7 @@ def main(args):
         return
     os.makedirs(args.o, exist_ok=True)
     os.chdir(args.i)
-    files = list_files(".", [".png", ".jpg", ".webp"], True)
+    files = pkg.list.file(".", [".png", ".jpg", ".webp"], True)
     start_time = time.time()
     with ProcessPoolExecutor(max_workers=args.thread) as executer:
         tasks = {executer.submit(resize, f, args): f for f in files}
@@ -101,7 +103,9 @@ def main(args):
                 print("==> FAILED: " + file)
                 failed_files.append(file)
 
-    print(f"\n==> {len(files)-len(failed_files)} file(s) resized successfully in {htime(time.time()-start_time)}")
+    num_of_files_resized = len(files)-len(failed_files)
+    total_time = pkg.human_readable.time(time.time()-start_time)
+    print(f"\n==> {num_of_files_resized} file(s) resized successfully in {total_time}")
 
     if len(failed_files) > 0:
         print(f"\n==> Failed {len(failed_files)} file(s):")
