@@ -1,14 +1,17 @@
-import time
-import ffprobe
-import subprocess as sp
-import human_readable
 import os
-import BCOLORS
+import time
+import subprocess as sp
+import pkg.ffprobe as ffprobe
+import pkg.human_readable as human_readable
+from pkg.BCOLORS import BCOLORS
+
 
 class ffmpeg_bar(object):
 
-    def __init__(self, ffmpeg_params: list) -> None:
+    def __init__(self, ffmpeg_params: list, ffmpeg_binary: str = 'ffmpeg', ffprobe_binary: str = 'ffprobe'):
         self.ffmpeg_params = ffmpeg_params
+        self.ffmpeg_binary = ffmpeg_binary
+        self.ffprobe_binary = ffprobe_binary
 
     def __progress_bar(self, value, endvalue, start_time, bar_length=20):
         percent = float(value) / endvalue if endvalue else 0
@@ -46,7 +49,7 @@ class ffmpeg_bar(object):
         ffmpeg_params = self.ffmpeg_params
 
         input_file = ffmpeg_params[ffmpeg_params.index('-i') + 1]
-        input_file_ffprobe = ffprobe(input_file)
+        input_file_ffprobe = ffprobe(input_file, self.ffprobe_binary)
 
         total_frame_count = int(input_file_ffprobe['streams'][0]['nb_frames'])
         start_time = time.time()
@@ -56,7 +59,7 @@ class ffmpeg_bar(object):
             with open("log.txt", "w") as f:
                 f.write(self.__sign_for_log(input_file))
 
-        proc = sp.Popen(["ffmpeg"] + ffmpeg_params,
+        proc = sp.Popen([self.ffmpeg_binary] + ffmpeg_params,
                         stdout=sp.PIPE,
                         stderr=sp.PIPE,
                         universal_newlines=True)
@@ -75,7 +78,6 @@ class ffmpeg_bar(object):
                     " "*3
                 ), end=("" if os.name != 'nt' else "\r"))
 
-
         avg_fps = sum(fps_recored) / len(fps_recored) if len(fps_recored) else 0
         print("{}{}fps {}{}".format(
             "\r" if os.name != 'nt' else "",
@@ -88,5 +90,5 @@ class ffmpeg_bar(object):
         before = human_readable.size(os.path.getsize(input_file))
         after = human_readable.size(os.path.getsize(ffmpeg_params[-1]))
 
-        print(BCOLORS.OKBLUE + before + BCOLORS.ENDC + " -> " + BCOLORS.OKGREEN + after + BCOLORS.ENDC)
+        print(BCOLORS.BLUE + before + BCOLORS.END + " -> " + BCOLORS.GREEN + after + BCOLORS.END)
         proc.wait()
