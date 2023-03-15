@@ -1,15 +1,16 @@
 from pathlib import Path
 from shutil import move
-from dngnd import dimension, list_files
+import pkg.dimension
+import pkg.list
 
 Path("./Portrait/").mkdir(parents=True, exist_ok=True)
 Path("./Square/").mkdir(parents=True, exist_ok=True)
 Path("./Landscape/").mkdir(parents=True, exist_ok=True)
 
 def main():
-    for file in list_files(".", [], recursive=True):
+    for file in pkg.list.file(".", [], recursive=True):
         try:
-            width, height = dimension(file)
+            width, height = pkg.dimension(file)
             if width > height:
                 move(file, "./Landscape/")
             elif width < height:

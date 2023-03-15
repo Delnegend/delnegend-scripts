@@ -1,10 +1,10 @@
 import os
 import subprocess
 import shutil
-from dngnd import *
+import pkg.list
 
 def main():
-    files = list_files(".", [".mkv"], recursive=True)
+    files = pkg.list.file(".", [".mkv"], recursive=True)
     for file in files:
         folder_name = os.path.splitext(file)[0]
         convert_to_mp4 = f'ffmpeg -i {file} -codec copy "output.mp4"'

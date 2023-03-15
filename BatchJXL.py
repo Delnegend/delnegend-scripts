@@ -1,5 +1,6 @@
 import os
-import pkg
+import pkg.list
+import pkg.human_readable
 from time import time
 from subprocess import run, DEVNULL
 from argparse import ArgumentParser
