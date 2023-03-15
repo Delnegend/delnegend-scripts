@@ -1,7 +1,7 @@
+import os
 import time
 import argparse
 import subprocess as sp
-import os
 
 
 def getArgs():

@@ -1,7 +1,7 @@
 import os
 import sys
-import subprocess as sp
 import argparse
+import subprocess as sp
 
 AVIF_CQ = 18  # 0-63, lower is better
 AVIF_TUNE = 1  # PSNR (better for graphics), 1 for SSIM (better for real photos)

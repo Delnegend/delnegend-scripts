@@ -1,6 +1,6 @@
+import re
 import os
 import shutil
-import re
 import subprocess as sp
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
