@@ -1,24 +1,46 @@
 import os
-import time
 import subprocess as sp
-import pkg.list
-import pkg.dimension
-import pkg.human_readable
-from shutil import copyfile
+import time
 from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from shutil import copyfile
+
+import pkg.dimension
+import pkg.human_readable
+import pkg.list
 
 THREADS = 4
 
+
 def get_args():
     parser = ArgumentParser("Batch upscale")
-    parser.add_argument("-force_srgan", help="Force to use RealESRGAN on all images", action="store_true")
+    parser.add_argument(
+        "-force_srgan",
+        help="Force to use RealESRGAN on all images",
+        action="store_true",
+    )
     parser.add_argument("-exit", help="Exit on complete, no confirmation", action="store_true")
     parser.add_argument("--i", help="Set input folder [.]", type=str, default=".")
-    parser.add_argument("--o", help="Set output folder [./output_upscaled]", type=str, default="./output_upscaled")
+    parser.add_argument(
+        "--o",
+        help="Set output folder [./output_upscaled]",
+        type=str,
+        default="./output_upscaled",
+    )
     parser.add_argument("--dim", help="Set maximum output dimension [2500]", type=int, default=2500)
-    parser.add_argument("--side", help="Select which side to resize [width (default), height, auto]", type=str, default="width", choices=["width", "height", "auto"])
-    parser.add_argument("--thread", help="Set the number of parallel run [# of cores]", type=int, default=THREADS)
+    parser.add_argument(
+        "--side",
+        help="Select which side to resize [width (default), height, auto]",
+        type=str,
+        default="width",
+        choices=["width", "height", "auto"],
+    )
+    parser.add_argument(
+        "--thread",
+        help="Set the number of parallel run [# of cores]",
+        type=int,
+        default=THREADS,
+    )
     parser.add_argument("--shelp", help="Show realesrgan help", action="store_true")
     parser.add_argument("--srgan_args", help="Add realesrgan arguments", type=str, default="")
     return parser.parse_args()
@@ -42,41 +64,50 @@ def resize(file, args):
         src_dim = height
     try:
         # ratio
-        if (target_dim < src_dim) or (src_dim*2 >= target_dim):
+        if (target_dim < src_dim) or (src_dim * 2 >= target_dim):
             ratio = 2
-        elif src_dim*3 >= target_dim:
+        elif src_dim * 3 >= target_dim:
             ratio = 3
         else:
             ratio = 4
         # upscale
         realsrgan_cmd = f'realesrgan-ncnn-vulkan -i "{file}" -o "{file}.upscaled.png" -s {str(ratio)}'
         realsrgan_cmd += " " + extra_args if extra_args else ""
-        if (src_dim < target_dim) or force_srgan: # only upscale if source smaller than target or force_srgan is set
+        if (src_dim < target_dim) or force_srgan:  # only upscale if source smaller than target or force_srgan is set
             sp.run(realsrgan_cmd, shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
         else:
-            copyfile(file, file + ".upscaled.png") # COPY, NOT MOVE
+            copyfile(file, file + ".upscaled.png")  # COPY, NOT MOVE
 
         # resize
-        if src_dim*ratio <= target_dim: # no need to resize when the result dimension is smaller than the target
-            os.rename(file + ".upscaled.png", file+".res.png")
+        if src_dim * ratio <= target_dim:  # no need to resize when the result dimension is smaller than the target
+            os.rename(file + ".upscaled.png", file + ".res.png")
         else:
             if src_dim == width:
-                ffmpeg_resize = f'ffmpeg -i "{file}.upscaled.png" -vf "scale=\'min({target_dim},iw)\':-1" "{file}.res.png"'
+                ffmpeg_resize = (
+                    f'ffmpeg -i "{file}.upscaled.png" -vf "scale=\'min({target_dim},iw)\':-1" "{file}.res.png"'
+                )
             elif src_dim == height:
-                ffmpeg_resize = f'ffmpeg -i "{file}.upscaled.png" -vf "scale=\'-1:min({target_dim},ih)\'" "{file}.res.png"'
+                ffmpeg_resize = (
+                    f'ffmpeg -i "{file}.upscaled.png" -vf "scale=\'-1:min({target_dim},ih)\'" "{file}.res.png"'
+                )
             sp.run(ffmpeg_resize, shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
             os.remove(f"{file}.upscaled.png")
 
         # move file to output folder but keep folder structure
         out_dir = os.path.join(output, os.path.dirname(file))
         os.makedirs(out_dir, exist_ok=True)
-        os.rename(f"{file}.res.png", os.path.join(out_dir, os.path.splitext(os.path.basename(file))[0] + ".png"))
+        os.rename(
+            f"{file}.res.png",
+            os.path.join(out_dir, os.path.splitext(os.path.basename(file))[0] + ".png"),
+        )
         return True
     except Exception as e:
         print(e)
         return False
 
+
 failed_files = []
+
 
 def main(args):
     if args.shelp:
@@ -103,8 +134,8 @@ def main(args):
                 print("==> FAILED: " + file)
                 failed_files.append(file)
 
-    num_of_files_resized = len(files)-len(failed_files)
-    total_time = pkg.human_readable.time(time.time()-start_time)
+    num_of_files_resized = len(files) - len(failed_files)
+    total_time = pkg.human_readable.time(time.time() - start_time)
     print(f"\n==> {num_of_files_resized} file(s) resized successfully in {total_time}")
 
     if len(failed_files) > 0:
@@ -112,7 +143,7 @@ def main(args):
         print(f for f in failed_files)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = get_args()
     try:
         main(args)

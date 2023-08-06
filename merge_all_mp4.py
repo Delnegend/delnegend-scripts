@@ -1,5 +1,5 @@
-import re
 import os
+import re
 import shutil
 import subprocess as sp
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -7,6 +7,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 def norm(path: str) -> str:
     return os.path.normpath(path).replace("\\", "/")
+
 
 def list(type: str, path: str, ext: list, recursive: bool):
     result = []
@@ -22,19 +23,19 @@ def list(type: str, path: str, ext: list, recursive: bool):
             break
     return result
 
+
 class BCOLOR:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
 
 
 class Footage(object):
-
     def __init__(self, host_folder: str):
         self.host_folder = ""
         self.parts = []
@@ -43,7 +44,12 @@ class Footage(object):
             self.parts.append(item)
 
     def isCorrupt(self, file: str) -> bool:
-        sp.run(f'ffmpeg -y -i "{file}" -t 2 -r 0.5 "{file}.jpg"', shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+        sp.run(
+            f'ffmpeg -y -i "{file}" -t 2 -r 0.5 "{file}.jpg"',
+            shell=True,
+            stdout=sp.DEVNULL,
+            stderr=sp.DEVNULL,
+        )
         if os.path.exists(f"{file}.jpg"):
             os.remove(f"{file}.jpg")
             return False
@@ -73,7 +79,12 @@ class Footage(object):
                 file.write(f"file '{line}'\n")
 
     def merge(self):
-        sp.call(f'ffmpeg -y -f concat -safe 0 -i "{self.host_folder}/list.txt" -c copy "{self.host_folder}.mkv"', shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+        sp.call(
+            f'ffmpeg -y -f concat -safe 0 -i "{self.host_folder}/list.txt" -c copy "{self.host_folder}.mkv"',
+            shell=True,
+            stdout=sp.DEVNULL,
+            stderr=sp.DEVNULL,
+        )
         os.remove(f"{self.host_folder}/list.txt")
 
     def __str__(self):
@@ -104,6 +115,7 @@ def main():
         f.merge()
         shutil.rmtree(f.host_folder)
         del f
+
 
 if __name__ == "__main__":
     main()
