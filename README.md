@@ -11,6 +11,7 @@
 - `batch_avif`: batch convert images in the working folder to `.avif`
   - Require: `ffmpeg`, `aomenc`, `mp4box`
 - `batch_har_extractor`: extract all `.har` files in the working folder to folders
+  - Require: [har-extractor](https://github.com/azu/har-extractor)
 - `compare_png`: MSE, SSIM
 - `complete`: early implementation of [gallery-preprocessor](https://github.com/Delnegend/gallery-preprocessor-go)
 - `merge_all_mp4`: same as `cctv_toolbox`
