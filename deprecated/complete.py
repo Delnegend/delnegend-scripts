@@ -5,6 +5,11 @@ import subprocess as sp
 
 from pkg import list, print_sign
 
+for binary in ("avifenc", "avifdec", "jxl", "7z"):
+    if shutil.which(binary) is None:
+        print(f"Error: {binary} not found in PATH")
+        exit(1)
+
 
 def curr_path():
     return os.path.dirname(os.path.realpath(__file__))

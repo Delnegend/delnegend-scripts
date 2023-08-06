@@ -1,7 +1,12 @@
 import argparse
 import os
+import shutil
 import subprocess as sp
 import time
+
+if shutil.which("realesrgan-ncnn-vulkan") is None:
+    print("Error: realesrgan-ncnn-vulkan not found in PATH")
+    exit(1)
 
 
 def getArgs():

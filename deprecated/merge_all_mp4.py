@@ -4,6 +4,11 @@ import shutil
 import subprocess as sp
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
+for binary in ("ffmpeg", "ffprobe"):
+    if shutil.which(binary) is None:
+        print(f"Error: {binary} not found in PATH")
+        exit(1)
+
 
 def norm(path: str) -> str:
     return os.path.normpath(path).replace("\\", "/")

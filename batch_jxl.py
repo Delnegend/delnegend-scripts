@@ -1,4 +1,5 @@
 import os
+import shutil
 from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from subprocess import DEVNULL, run
@@ -8,6 +9,11 @@ import pkg.human_readable
 import pkg.list
 
 THREADS = 4
+
+for binary in ("cjxl", "djxl"):
+    if shutil.which(binary) is None:
+        print(f"{binary} not found in PATH")
+        exit(1)
 
 
 def get_args():
