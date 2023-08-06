@@ -26,6 +26,11 @@ if "wsl2" in platform.platform().lower():
     FFPROBE_BINARY = "ffprobe.exe"
     FFMPEG_BINARY = "ffmpeg.exe"
 
+for binary in (FFMPEG_BINARY, FFPROBE_BINARY, GIT_WINDOWS_PATH, GIT_LINUX_PATH):
+    if shutil.which(binary) is None:
+        print(f"Error: {binary} not found in PATH")
+        exit(1)
+
 # =======================
 # region: COSMETIC STUFFS
 # =======================

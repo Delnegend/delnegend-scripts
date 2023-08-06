@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess as sp
 import time
 from argparse import ArgumentParser
@@ -10,6 +11,11 @@ import pkg.human_readable
 import pkg.list
 
 THREADS = 4
+
+for binary in ("ffmpeg", "realesrgan-ncnn-vulkan"):
+    if shutil.which(binary) is None:
+        print(f"{binary} not found in PATH")
+        exit(1)
 
 
 def get_args():

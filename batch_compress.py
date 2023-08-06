@@ -1,10 +1,15 @@
 import os
+import shutil
 from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from os import chdir, listdir
 from subprocess import run
 
 THREADS = 4
+
+if shutil.which("7z") is None:
+    print("7z not found in PATH")
+    exit(1)
 
 
 def get_args():

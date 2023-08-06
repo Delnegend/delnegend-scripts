@@ -34,6 +34,11 @@ config = {
     "log": False,
 }
 
+for binary in ("ffmpeg", "aomenc", "MP4Box"):
+    if shutil.which(binary) is None:
+        print(f"Error: {binary} not found in PATH")
+        exit(1)
+
 
 def get_args():
     parser = ArgumentParser(description="AVIF batch encoder.")

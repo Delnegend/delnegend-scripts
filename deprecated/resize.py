@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 import subprocess as sp
 import sys
 
@@ -10,6 +11,11 @@ JXL_DISTANCE = 1  # 0-15, lower is better
 JXL_EFFORT = 9  # 1-9, higher is better
 WEBP_Q = 90  # 0-100, higher is better
 JPG_Q = 90  # 0-100, higher is better
+
+for binary in ("ffprobe", "ffmpeg", "avifenc", "cjxl"):
+    if shutil.which(binary) is None:
+        print(f"Error: {binary} not found in PATH")
+        exit(1)
 
 
 def dim(img: str) -> tuple:

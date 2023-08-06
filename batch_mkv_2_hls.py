@@ -4,6 +4,10 @@ import subprocess
 
 import pkg.list
 
+if shutil.which("ffmpeg") is None:
+    print("ffmpeg not found in PATH")
+    exit(1)
+
 
 def main():
     files = pkg.list.file(".", [".mkv"], recursive=True)
