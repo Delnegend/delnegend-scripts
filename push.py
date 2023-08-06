@@ -1,14 +1,15 @@
-import os
-import re
-import sys
 import math
-import random
-import string
-import shutil
+import os
 import platform
+import random
+import re
+import shutil
+import string
 import subprocess as sp
+import sys
+
+from pkg.colors import BCOLORS
 from pkg.ffmpeg_bar import ffmpeg_bar
-from pkg.BCOLORS import BCOLORS
 
 MAX_SIZE_PER_PUSH = 100 * 1024 * 1024  # DO NOT GO BEYOND 4.88 GB
 MAX_SIZE_PER_REPO = 9 * 1024 * 1024 * 1024  # 9.5 GB
@@ -38,7 +39,8 @@ def printSign(msg: str, color: str) -> None:
 
 
 def cls():
-    sp.run('cls' if os.name == 'nt' else 'clear')
+    sp.run("cls" if os.name == "nt" else "clear")
+
 
 # endregion
 
@@ -102,10 +104,10 @@ def getUserInputOption(options: list, default: int = 1) -> str:
 
 
 def generateRandomAlphanumeric(length: int) -> str:
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+    return "".join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
-class PushToRepo():
+class PushToRepo:
     def __init__(self, parts_folder: str, repo_folder: str) -> None:
         self.parts_folder = parts_folder
         self.repo_folder = repo_folder
@@ -171,7 +173,7 @@ def main():
             choice = input("Enter your choice: ")
             if choice in ["1", "2", "3", "4", "5"]:
                 break
-            printSign(f"Invalid choice", BCOLORS.RED)
+            printSign("Invalid choice", BCOLORS.RED)
 
         if choice == "5":
             return
@@ -196,7 +198,27 @@ def main():
             os.rename(movie_path, os.path.join(splitted_movie_dir, movie_path))
             os.chdir(splitted_movie_dir)
 
-            ffmpeg_params = ["-i", movie_path, "-map", "0:v:0", "-map", "0:a:0", "-c", "copy", "-start_number", "0", "-hls_time", str(HLS_SPLIT_DURATION), "-hls_list_size", "0", "-hls_segment_filename", "%03d.ts", "-f", "hls", "index.m3u8"]
+            ffmpeg_params = [
+                "-i",
+                movie_path,
+                "-map",
+                "0:v:0",
+                "-map",
+                "0:a:0",
+                "-c",
+                "copy",
+                "-start_number",
+                "0",
+                "-hls_time",
+                str(HLS_SPLIT_DURATION),
+                "-hls_list_size",
+                "0",
+                "-hls_segment_filename",
+                "%03d.ts",
+                "-f",
+                "hls",
+                "index.m3u8",
+            ]
 
             progress = ffmpeg_bar(ffmpeg_params, FFMPEG_BINARY, FFPROBE_BINARY)
             progress.start()
@@ -205,7 +227,7 @@ def main():
 
             if os.path.getsize(movie_path) > MAX_SIZE_PER_REPO:
                 numbers_of_parts = math.ceil(os.path.getsize(movie_path) / MAX_SIZE_PER_REPO)
-                for i in range(1, numbers_of_parts+1):
+                for i in range(1, numbers_of_parts + 1):
                     os.makedirs(f"{i}_{splitted_movie_dir}", exist_ok=True)
                 part_list = list("file", splitted_movie_dir, [".ts"])
 
@@ -218,7 +240,10 @@ def main():
                         size_limit_counter = 0
                     shutil.move(part, f"{current_part}_{splitted_movie_dir}")
 
-                shutil.move(os.path.join(splitted_movie_dir, "index.m3u8"), f"1_{splitted_movie_dir}")
+                shutil.move(
+                    os.path.join(splitted_movie_dir, "index.m3u8"),
+                    f"1_{splitted_movie_dir}",
+                )
                 if not os.path.exists(os.path.join(splitted_movie_dir, movie_path)):
                     shutil.rmtree(splitted_movie_dir)
 
@@ -226,7 +251,9 @@ def main():
             # ----------------- Clone repo -----------------
             cls()
             printSign("Config repo", BCOLORS.CYAN)
-            numbers_of_repo = getUserInputNumber(f"{BCOLORS.YELLOW}How many repo do you want to clone?{BCOLORS.END} (default: 1) ")
+            numbers_of_repo = getUserInputNumber(
+                f"{BCOLORS.YELLOW}How many repo do you want to clone?{BCOLORS.END} (default: 1) "
+            )
             repo_url_list = []
             for i in range(numbers_of_repo):
                 repo_url_list.append(input(f"Enter repo url {i+1}: "))
@@ -235,7 +262,9 @@ def main():
                 sp.run([GIT_WINDOWS_PATH, "clone", repo_url, repo_folder_name])
 
         if choice == "3":
-            numbers_of_parts = getUserInputNumber(f"{BCOLORS.YELLOW}How many part do you want to push?{BCOLORS.END} (default: 1) ")
+            numbers_of_parts = getUserInputNumber(
+                f"{BCOLORS.YELLOW}How many part do you want to push?{BCOLORS.END} (default: 1) "
+            )
             pair_list = []
 
             # let user select pair(s) of parts folder and repo folder, remove the option when it's already selected
@@ -266,5 +295,6 @@ def main():
         if os.path.exists("wscript.exe") and os.path.exists("/mnt/d/sound.vbs"):
             sp.run(["wscript.exe", "D:\\sound.vbs"])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

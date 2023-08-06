@@ -1,5 +1,6 @@
 import os
 
+
 def file(path: str, ext: list, recursive=True, get_full_path=False):
     full_path = os.path.abspath(path) if not os.path.isabs(path) else path
     rel_path = os.path.relpath(path, os.getcwd())
@@ -16,7 +17,7 @@ def file(path: str, ext: list, recursive=True, get_full_path=False):
     return files
 
 
-def folder(path: str, recursive = True):
+def folder(path: str, recursive=True):
     # list folders recursively in path
     folders = []
     for f in os.listdir(path):

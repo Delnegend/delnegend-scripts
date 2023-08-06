@@ -1,8 +1,9 @@
-import os
-import subprocess as sp
-import shutil
 import argparse
-from pkg import print_sign, list
+import os
+import shutil
+import subprocess as sp
+
+from pkg import list, print_sign
 
 
 def curr_path():
@@ -12,9 +13,24 @@ def curr_path():
 def get_args():
     parser = argparse.ArgumentParser("Batch process packs")
     parser.add_argument("-i", "--input", help="Specify main input folder", type=str, default=".")
-    parser.add_argument("-force_srgan", help="Force to use RealESRGAN on all images", action="store_true")
-    parser.add_argument("-m", "--mode", help="Process from JPG/PNG or JXL [raw (default), jxl]", type=str, default="raw", choices=["raw", "jxl", "webp"])
-    parser.add_argument("-no_archive", help="No compressing to zip/7z, just process to jxl and avif", action="store_true")
+    parser.add_argument(
+        "-force_srgan",
+        help="Force to use RealESRGAN on all images",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-m",
+        "--mode",
+        help="Process from JPG/PNG or JXL [raw (default), jxl]",
+        type=str,
+        default="raw",
+        choices=["raw", "jxl", "webp"],
+    )
+    parser.add_argument(
+        "-no_archive",
+        help="No compressing to zip/7z, just process to jxl and avif",
+        action="store_true",
+    )
     return parser.parse_args()
 
 
@@ -42,16 +58,20 @@ def stage_copy_ani(upscale_folder):
 def stage_avif(upscale_folder, main_folder, pack, args):
     print_sign("AVIF encode stage", "small")
     os.chdir(upscale_folder)
-    sp.call('BatchAVIF', shell=True)
+    sp.call("BatchAVIF", shell=True)
     if not args.no_archive:
         sp.run(
             f'7z.exe a -bt -tzip -x"!*.ini" -r "{os.path.join(main_folder, pack)}.zip" *.avif',
-            shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+            shell=True,
+            stdout=sp.DEVNULL,
+            stderr=sp.DEVNULL,
+        )
     else:
         for i in list.list_file(".", [".avif"], True):
             os.rename(i, os.path.join(main_folder, pack, i))
     os.chdir(main_folder)
     shutil.rmtree(upscale_folder)
+
 
 # PNG/JPG
 # --> JXL --> 7z
@@ -67,11 +87,17 @@ def from_raw(args):
 
         # convert orginal to jxl and (pack to 7z + del .jxl) if args specified
         print_sign("JXL encode stage", "small")
-        sp.call(f'python "{curr_path()}/BatchJXL.py" -exit --formats ".jpg .jpeg .png"', shell=True)
+        sp.call(
+            f'python "{curr_path()}/BatchJXL.py" -exit --formats ".jpg .jpeg .png"',
+            shell=True,
+        )
         if not args.no_archive:
             sp.run(
                 f'7z.exe a -bt -t7z -x"!*.ini" -r "{os.path.join(main_folder, pack)}.7z" *.jxl *.mp4 *.gif',
-                shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+                shell=True,
+                stdout=sp.DEVNULL,
+                stderr=sp.DEVNULL,
+            )
             for file in list.list_file(".", [".jxl"], True):
                 os.remove(file)
 
@@ -116,7 +142,7 @@ def from_jxl(args):
         shutil.rmtree(upscale_folder)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         args = get_args()
         if args.mode == "raw":

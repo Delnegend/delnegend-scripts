@@ -1,8 +1,9 @@
 import glob
 import os
+import pathlib
 import shutil
 import sys
-import pathlib
+
 
 def main():
     tempPathName = "newFilesBigger"
@@ -23,7 +24,8 @@ def main():
                 shutil.move(oldFile, tempPathName)
                 shutil.move(newFile, tempPathName)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     try:
         main()
     except Exception as e:

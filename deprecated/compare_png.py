@@ -1,7 +1,8 @@
-from skimage.metrics import structural_similarity as ssim
-import numpy as np
-import cv2
 import sys
+
+import cv2
+import numpy as np
+from skimage.metrics import structural_similarity as ssim
 
 
 def mse(imageA, imageB):
@@ -19,5 +20,5 @@ imageBgs = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
 
 
 if __name__ == "__main__":
-    print(f'SSIM: {ssim(imageAgs, imageBgs)}, MSE: {mse(imageA, imageB)}')
+    print(f"SSIM: {ssim(imageAgs, imageBgs)}, MSE: {mse(imageA, imageB)}")
     input("Press Enter to exit...")

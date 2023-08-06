@@ -1,27 +1,28 @@
-from subprocess import run
-from os import listdir, chdir
+import os
 from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from os import chdir, listdir
+from subprocess import run
 
 THREADS = 4
 
+
 def get_args():
-    parser = ArgumentParser(
-        description="Batch compress data in folder(s) into archive(s)")
+    parser = ArgumentParser(description="Batch compress data in folder(s) into archive(s)")
     parser.add_argument(
         "-f",
         "--format",
         help="Select the compression format [.7z (default) or .zip]",
         type=str,
         default=".7z",
-        choices=[".7z", ".zip"]
+        choices=[".7z", ".zip"],
     )
     parser.add_argument(
         "-e",
         "--extension",
         help="Select the file types will be compressed, each seperated by a space [txt docx ...] or [* (default)]",
         type=str,
-        default="all"
+        default="all",
     )
     return parser.parse_args()
 
@@ -37,12 +38,12 @@ def compress(path, format, ext_list):
 
     _7_zip_cmd = f'7z.exe a -bt -t{format[1:]} -x"!*.ini" -r "{os.path.join("..", f"{path}{format}")}"'
 
-    exts = ext_list.split(' ')
+    exts = ext_list.split(" ")
     if exts[0] == "all":
         _7_zip_cmd += " *"
     else:
         for ext in exts:
-            _7_zip_cmd += f' *.{ext}'
+            _7_zip_cmd += f" *.{ext}"
     try:
         # 7z extra params: -m0=lzma2:d1024m -mx=9 -mfb=64 -md=32m -ms=on
         run(_7_zip_cmd, shell=True, check=True)
@@ -69,7 +70,7 @@ def main():
         print(f"\n==> FAILED: {job}" for job in failed_jobs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         main()
     except Exception as e:
