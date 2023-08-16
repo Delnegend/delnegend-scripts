@@ -144,7 +144,7 @@ class MainMenu:
         for folder in hostdirs:
             print("  " + folder)
         if input("These are the folders to process, continue? (y/n): ") != "y":
-            return
+            exit(0)
 
         for folder in [i for i in os.listdir(".") if os.path.isdir(i) and re.search(r"^\d{10}$", i)]:
             hostdir = f"{folder[:4]}_{folder[4:6]}_{folder[6:8]}"
