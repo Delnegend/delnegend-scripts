@@ -170,19 +170,23 @@ class MainMenu:
             break
         return seleted_host_folder
 
+    def rmtree(self, folder: str) -> None:
+        if re.search(r"\d{4}_\d{2}_\d{2}.mkv", folder) and Config.delete_completed:
+            shutil.rmtree(folder)
+
     # ----- MENU -----
 
     def auto_pilot(self) -> None:
         for folder in [i for i in os.listdir(".") if os.path.isdir(i) and re.search(r"^\d{4}_\d{2}_\d{2}$", i)]:
             footage = Footage(folder)
             footage.start()
-            shutil.rmtree(folder)
+            self.rmtree(folder)
 
     def merge_one(self) -> None:
         selected_hostdir = self.select_hostdir()
         footage = Footage(selected_hostdir)
         footage.start()
-        shutil.rmtree(selected_hostdir)
+        self.rmtree(selected_hostdir)
 
     def check_corrupt(self) -> None:
         selected_hostdir = self.select_hostdir()
