@@ -4,7 +4,10 @@ import shutil
 import subprocess as sp
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-FFMPEG = "/media/HDD/Apps/ffmpeg"
+
+class Config:
+    ffmpeg = "/media/HDD/Apps/ffmpeg"
+    delete_completed = False
 
 
 def norm(path: str) -> str:
@@ -56,7 +59,9 @@ class Footage(object):
         Input: a file name
         Output: (True, file) if corrupt, (False, "") if not corrupt
         """
-        sp.run(f'{FFMPEG} -y -i "{file}" -t 2 -r 0.5 "{file}.jpg"', shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+        sp.run(
+            f'{Config.ffmpeg} -y -i "{file}" -t 2 -r 0.5 "{file}.jpg"', shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL
+        )
         if os.path.exists(f"{file}.jpg"):
             os.remove(f"{file}.jpg")
             return False, ""
@@ -96,7 +101,7 @@ class Footage(object):
 
         print("  Merging...")
         ffmpeg_data = os.path.join(self.host_folder, "list.txt")
-        command = f'{FFMPEG} -y -f concat -safe 0 -i "{ffmpeg_data}" -c copy "{self.host_folder}.mkv"'
+        command = f'{Config.ffmpeg} -y -f concat -safe 0 -i "{ffmpeg_data}" -c copy "{self.host_folder}.mkv"'
         sp.call(command, shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
 
     def __str__(self):
@@ -236,8 +241,8 @@ if __name__ == "__main__":
         print(f"{BCOLOR.RED}Please run as root{BCOLOR.END}")
         exit(1)
 
-    if not os.path.exists(FFMPEG):
-        print(f"{BCOLOR.RED}FFMPEG not found at {FFMPEG}{BCOLOR.END}")
+    if not os.path.exists(Config.ffmpeg):
+        print(f"{BCOLOR.RED}FFMPEG not found at {Config.ffmpeg}{BCOLOR.END}")
         exit(1)
     try:
         main()
